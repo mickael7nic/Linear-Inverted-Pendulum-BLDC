@@ -1,3 +1,4 @@
+![Mein Projekt-Logo](./DOKU/pendel-system.svg)
 # Inverses Pendel auf Schiene
 
 **Ein Wagen balanciert ein Pendel aufrecht – schwingt es selbst hoch, fängt es sanft auf und hält es über Minuten ruhig im instabilen Gleichgewicht.**
