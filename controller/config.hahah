@@ -1,0 +1,109 @@
+// config.h – Hardware- und Reglerparameter Wagen
+#pragma once
+#include <math.h>
+
+// ---------------- Pins Treiberplatine ----------------
+#define PIN_FOC_IN1     16      // IR2104 Phase A, IN
+#define PIN_FOC_IN2     17      // IR2104 Phase B, IN
+#define PIN_FOC_IN3     5       // IR2104 Phase C, IN
+#define PIN_FOC_EN      4       // IR2104 SD# (gemeinsam, aktiv HIGH)
+
+#define PIN_ENC_CS      13      // MT6835 CSN
+#define PIN_SPI_MOSI    23
+#define PIN_SPI_MISO    19
+#define PIN_SPI_SCK     18
+constexpr uint32_t ENC_SPI_HZ = 8000000;     // MT6835 bis 16 MHz
+
+// ---------------- Strommessung INA240 (inline, ADC1 -> WLAN-verträglich) ----------------
+#define USE_CURRENT_SENSE 0     // 0 = geschätzter Strom (R + Totzeit aus Strom-Test 'I'). 1 erst mit Shunt R002:
+                                // Strom-Test: 20 mOhm x 50 übersteuert ab ~1,6 A (gemessen)
+#define PIN_CUR_A       39      // INA240 Phase A
+#define PIN_CUR_B       36      // INA240 Phase B
+constexpr float SHUNT_OHM      = 0.02f;    // R020 (20 mOhm)
+constexpr float INA240_GAIN    = 50.0f;    // I240A2 -> 1 V/A, Messbereich nur ca. +-1,6 A!
+constexpr float CURRENT_BW_HZ  = 300.0f;   // Stromregler-Bandbreite (wird bei zu langsamer FOC-Schleife reduziert)
+
+// ---------------- Motor BE5208-300KV ----------------
+constexpr int   POLE_PAIRS                 = 11;     // 22 Magnete (24N22P)
+constexpr float MOTOR_PHASE_RESISTANCE_OHM = 0.053f; // Datenblatt ~0,106 Ohm Leiter-Leiter; wird beim 1. Start gemessen
+constexpr float MOTOR_KV                   = 300.0f;
+constexpr float SUPPLY_VOLTAGE             = 12.0f;  // ANPASSEN
+constexpr float CURRENT_LIMIT_A            = 12.0f;  // Iq-Begrenzung
+constexpr float ALIGN_VOLTAGE              = 0.5f;   // bei ~0,05 Ohm/Phase schon ~6-9 A! Nicht erhöhen
+constexpr float PWM_FREQ_HZ                = 20000.0f;
+// Drehmomentkonstante für Iq-Amplitude: Kt = 0.866 / KV[rad/s/V]
+constexpr float KT_NM_PER_A = 0.866f / (MOTOR_KV * 2.0f * (float)M_PI / 60.0f);
+
+// ---------------- Mechanik ----------------
+constexpr float PULLEY_RADIUS_M   = 0.00637f;  // GT2, 20 Zähne: 20*2mm/(2*pi). ANPASSEN
+constexpr int   X_SIGN            = 1;         // Wagen von Hand Richtung +x schieben -> x muss steigen
+constexpr float CART_MASS_EFF_KG  = 2.5f;      // Wagen+Pendel ~0,4 kg + Rotor BE5208 J/r^2 ~2 kg (geschätzt)
+constexpr float X_SOFT_M          = 0.35f;     // Swing-up-Bereich ab Mitte (Obergrenze; nach Homing max. Weg/2 - 60 mm)
+constexpr float X_HARD_M          = 0.38f;     // Notstopp ab Mitte (nur vor dem Homing; danach Weg/2 - HOME_MARGIN)
+
+// ---------------- Homing (sensorlos: Anschlag über Phasenstrom) ----------------
+constexpr bool  HOME_ON_START   = false;   // true = beim Einschalten automatisch homen
+constexpr float HOME_SPEED      = 0.08f;   // [m/s] Suchgeschwindigkeit
+constexpr float HOME_ACCEL      = 0.5f;    // [m/s^2]
+constexpr float HOME_I_MAX      = 1.0f;    // [A] Strombegrenzung beim Homing (~4 N)
+constexpr float HOME_I_STALL    = 0.2f;    // [A] Anschlag ab |Iq| > ..., muss klar über "Iq frei max" liegen
+constexpr float HOME_V_STALL    = 0.01f;   // [m/s]
+constexpr float HOME_T_STALL    = 0.15f;   // [s]
+// Schiene 900 mm - Wagen 45 mm = ~855 mm Verfahrweg (abzüglich Anschläge/Riemenklemmen)
+constexpr float HOME_MIN_TRAVEL = 0.70f;   // [m] Plausibilität Verfahrweg (Schiene 900 mm - Wagen 45 mm)
+constexpr float HOME_MAX_TRAVEL = 0.88f;
+constexpr float HOME_MARGIN     = 0.02f;   // [m] Notstopp-Abstand zum Anschlag
+constexpr float HOME_SOFT_GAP   = 0.04f;   // [m] Swing-up-Grenze innerhalb des Notstopps
+constexpr float HOME_TIMEOUT    = 20.0f;   // [s] je Suchfahrt (0,86 m / 0,08 m/s ~ 11 s)
+
+// ---------------- Pendel ----------------
+constexpr float PENDULUM_ELL_DEFAULT_M = 0.21f;  // Pendel 27 cm + Elektronik bei 22,5 cm (Schätzung), mit 'p' messen!
+constexpr float PENDULUM_DAMP_DEFAULT  = 0.05f;  // [1/s], wird mit 'p' gemessen
+constexpr float IMU_RADIUS_M           = 0.225f; // Drehpunkt -> BMI270-Chip
+
+// ---------------- IMU-Achsen (Rohachse 0=X 1=Y 2=Z, Vorzeichen +-1) ----------------
+// Prüfen mit 'm' (Monitor):
+//   Pendel hängt ruhig:          fr ~ -9.8, ft ~ 0, th ~ ±180°
+//   Spitze statisch Richtung +x: ft wird negativ, th wird kleiner (180 -> 170)
+//   Schwingt Spitze Richtung +x: om negativ (hängend), b bleibt ruhig
+constexpr int AX_R_IDX = 1, AX_R_SIGN = -1;    // radial: Drehpunkt -> Spitze
+constexpr int AX_T_IDX = 0, AX_T_SIGN = 1;     // tangential: Richtung +th (aus Balancier-Daten bestätigt)
+constexpr int GYR_IDX  = 2, GYR_SIGN  = 1;     // Drehachse, + = +th
+
+// ---------------- Funk ----------------
+constexpr int LATENCY_SAMPLES = 2;             // ~2,5 ms bei 800 Hz
+constexpr int MAX_LOST        = 40;            // 50 ms ohne Daten -> Fault
+
+// ---------------- Pendel-Kalibrierung (Ergebnis im NVS) ----------------
+constexpr float CAL_TIME_S        = 5.0f;      // so lange muss das Pendel ruhig hängen
+constexpr float CAL_GYRO_STD      = 0.01f;     // [rad/s] max. Streuung je 0,5-s-Block
+constexpr float CAL_TIMEOUT_S     = 30.0f;
+constexpr float CAL_MAX_OFFSET    = 0.5f;      // [rad] Plausibilität Montagewinkel (sonst Achsen falsch)
+
+// ---------------- Bluetooth (Web-App) ----------------
+#define BLE_NAME        "Pendel-Wagen"
+
+// ---------------- OTA (WLAN nur während OTA aktiv, ESP-NOW dann aus) ----------------
+#include "secrets.h"            // WIFI_SSID, WIFI_PASS
+#ifndef AP_PASS
+#define AP_PASS         "pendel123"        // Notfall-AP, falls der Router nicht erreichbar ist
+#endif
+#define OTA_HOSTNAME    "pendel-wagen"
+constexpr uint32_t OTA_TIMEOUT_MS = 300000;    // 5 min ohne Upload -> Neustart
+
+// ---------------- Regler ----------------
+// LQR auf [x v th om] mit Stellgröße Wagenbeschleunigung (wird bei Start/nach 'p' neu berechnet)
+constexpr float LQR_QX = 400, LQR_QV = 10, LQR_QTH = 400, LQR_QOM = 10, LQR_R = 0.5f;   // R größer = sanfter (0.05 -> Schwingen ~20 Hz)
+// Wagen-Servo (unterlagert)
+constexpr float SERVO_WN = 40.0f, SERVO_ZETA = 0.8f, SERVO_EMAX_M = 0.02f;
+constexpr float F_COULOMB_N = 0.0f;            // Haftreibungs-Vorsteuerung, ggf. 0.5..2 N
+constexpr float A_MAX = 30.0f, V_MAX = 2.0f;
+// Swing-up
+constexpr float SU_KE = 1.0f, SU_KX = 15.0f, SU_KV = 4.0f, SU_AMAX = 8.0f;
+constexpr float SU_CATCH_TH = 0.35f, SU_CATCH_OM = 4.0f, SU_EMARGIN = 0.8f;
+constexpr float BAL_LOST_TH = 0.6f;
+// Balancierpunkt-Abgleich (gleicht konstanten Winkelfehler aus, Ergebnis im NVS)
+constexpr float TRIM_TAU_S = 10.0f;            // Zeitkonstante, 0 = aus
+constexpr float TRIM_MAX_RAD = 0.1f;           // max. ±5,7°
+// EKF
+constexpr float EKF_SIG_GYRO = 0.01f, EKF_SIG_ACC = 0.5f, EKF_Q_OM = 20.0f, EKF_Q_B = 1e-6f, EKF_GATE = 6.0f;

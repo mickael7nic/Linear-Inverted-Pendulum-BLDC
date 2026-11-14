@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inverses Pendel</title>
+<style>
+  :root {
+    --bg: #0f1216; --panel: #171b21; --line: #262c35; --text: #d8dee6; --muted: #8590a0;
+    --accent: #4aa3ff; --ok: #3ecf8e; --warn: #f0b429; --err: #ef5350; --cart: #9aa7b8; --pend: #ffb74d;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px;
+           border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; font-weight: 600; }
+  .chip { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted);
+          font-size: 12px; white-space: nowrap; }
+  .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+  .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  .chip.err { color: var(--err); border-color: color-mix(in srgb, var(--err) 40%, transparent); }
+  .chip.mode { color: var(--text); font-weight: 600; font-family: var(--mono); }
+  .spacer { flex: 1; }
+  main { display: grid; grid-template-columns: 470px minmax(0, 1fr); gap: 14px; padding: 14px 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+               margin: 0 0 8px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  canvas { width: 100%; display: block; }
+  #anim { height: 240px; }
+  #plot { height: 300px; }
+  .xsrow { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .xslab { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .xsrow b { font-family: var(--mono); min-width: 70px; text-align: right; }
+  #xsSlider { flex: 1; min-width: 0; accent-color: var(--cart); height: 24px; }
+  .left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .right { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  button { background: #222832; color: var(--text); border: 1px solid #333b47; border-radius: 8px;
+           padding: 8px 8px; font: inherit; cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+  button small { display: block; color: var(--muted); font-size: 11px; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); text-align: center; }
+  button.stop { grid-column: 1 / -1; background: #2a3038; border: 2px solid color-mix(in srgb, var(--err) 55%, #333b47);
+                color: var(--text); font-weight: 700; font-size: 18px; text-align: center; padding: 14px;
+                transition: background .2s, box-shadow .2s; }
+  button.stop small { color: var(--muted); }
+  button.stop.active { background: var(--err); border-color: #ff8a80; color: #fff;
+                       box-shadow: 0 0 0 3px color-mix(in srgb, var(--err) 35%, transparent); animation: stopPulse 1.2s ease-in-out infinite; }
+  button.stop.active small { color: #fff; }
+  button.stop.rest { background: var(--ok); border-color: #8be9bf; color: #0b2a1c;
+                     box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 35%, transparent); }
+  button.stop.rest small { color: #0b2a1c; }
+  @keyframes stopPulse { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--err) 15%, transparent); } }
+  button.danger { border-color: color-mix(in srgb, var(--err) 50%, #333b47); }
+  button.mini { padding: 3px 8px; font-size: 12px; text-align: center; }
+  #log { height: 280px; overflow: auto; font: 12px/1.45 var(--mono); background: #0c0f13; border-radius: 6px;
+         padding: 8px; white-space: pre; }
+  #log .t { color: #59626f; }
+  #log .ev { color: var(--accent); }
+  #log .er { color: var(--err); }
+  #log .tx { color: var(--muted); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  input[type=text] { flex: 1; background: #0c0f13; border: 1px solid #333b47; border-radius: 6px; color: var(--text);
+                     padding: 7px 9px; font: 13px var(--mono); }
+  .vals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; font-family: var(--mono); }
+  .vals div { background: #0c0f13; border-radius: 6px; padding: 5px 8px; }
+  .vals span { display: block; color: var(--muted); font: 11px system-ui, sans-serif; }
+  .legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); margin-left: auto; text-transform: none; letter-spacing: 0; }
+  .legend i { display: inline-block; width: 10px; height: 3px; vertical-align: middle; margin-right: 4px; }
+  details.fold > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::before { content: "▸"; color: var(--muted); font-size: 12px; transition: transform .15s; }
+  details.fold[open] > summary::before { transform: rotate(90deg); }
+  details.fold > summary h2 { margin: 0; }
+  details.fold[open] > summary { margin-bottom: 8px; }
+  .ota { display: flex; flex-direction: column; gap: 10px; }
+  .ostep { display: flex; gap: 10px; align-items: flex-start; }
+  .ostep > div { flex: 1; min-width: 0; }
+  .onum { flex: 0 0 22px; height: 22px; border-radius: 50%; background: #222832; border: 1px solid #333b47;
+          display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+  .osub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .osub code { font-family: var(--mono); color: var(--text); }
+  progress { flex: 1; height: 10px; accent-color: var(--accent); min-width: 60px; }
+  .fname { flex: 1; min-width: 0; font: 12px var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fname.set { color: var(--text); }
+  #nobt { display: none; background: #3a2a10; color: var(--warn); padding: 8px 16px; }
+</style>
+</head>
+<body>
+<div id="nobt">Web Bluetooth nicht verfügbar – bitte Chrome oder Edge (Desktop/Android) verwenden.</div>
+<header>
+  <h1>Inverses Pendel</h1>
+  <button id="btnConnect" class="primary mini" style="padding:6px 14px">Verbinden</button>
+  <span id="cConn" class="chip">getrennt</span>
+  <span id="cMode" class="chip mode">–</span>
+  <span id="cHome" class="chip">Homing</span>
+  <span id="cCal" class="chip">Kalibrierung</span>
+  <span id="cEst" class="chip">Schätzer</span>
+  <span id="cLink" class="chip">Pendel-Funk</span>
+  <span id="cBat" class="chip">Akku –</span>
+  <span class="spacer"></span>
+  <span id="cRate" class="chip">0 Hz</span>
+</header>
+
+<main>
+  <div class="right">
+    <section>
+      <h2>Betrieb</h2>
+      <div class="btns">
+        <button id="btnStop" class="stop" data-cmd="x" data-always>STOPP <small id="stopSub">Regelung aus · Leertaste</small></button>
+        <button data-cmd="H">Homing<small>Riemenmarke bzw. Anschläge, Mitte setzen</small></button>
+        <button data-cmd="h">Halten<small>Wagen zur Mitte</small></button>
+        <button data-cmd="s">Swing-up<small>aufschwingen + balancieren</small></button>
+        <button data-cmd="b">Balancieren<small>startet, wenn Pendel senkrecht gehalten</small></button>
+        <button data-cmd="G">Beruhigen<small>Pendel hängend: zur Mitte, Schwingung dämpfen</small></button>
+        <button data-cmd="0">Nullpunkt<small>aktuelle Position = Mitte</small></button>
+      </div>
+    </section>
+    <section>
+      <details id="setupBox" class="fold">
+      <summary><h2>Einrichten &amp; Diagnose</h2></summary>
+      <div class="btns">
+        <button data-cmd="U">LED-Test<small>Lauflicht hin und zurück, bunt</small></button>
+        <button data-cmd="c">Kalibrieren<small>Pendel 5 s ruhig hängen → NVS</small></button>
+        <button data-cmd="p">Pendel vermessen<small>auslenken, loslassen, klicken</small></button>
+        <button data-cmd="Z">Zeitlupe<small>Richtungstest, Wagen folgt langsam</small></button>
+        <button data-cmd="N" data-always>Hand-Modus<small>an/aus: nur Winkelregelung</small></button>
+        <button data-cmd="D" data-always>Rekorder<small>letzte 4 s, 400 Hz als CSV</small></button>
+        <button data-cmd="?">Status<small>Parameter ins Log</small></button>
+        <button data-cmd="L" data-always>Funk-Test<small>an/aus: keine Telemetrie bei laufendem Motor</small></button>
+        <button data-cmd="S" data-always>Encoder-Test<small>MT6835 prüfen, Motor drehen</small></button>
+        <button data-cmd="E" data-always>Endstufen-Test<small>Phasen 8 s 6 V, 8 s 0 V messen</small></button>
+        <button class="danger" data-cmd="K" data-always data-confirm="MT6835-Selbstkalibrierung starten?\n\nRIEMEN VORHER ABNEHMEN! Der Motor dreht ca. 30-40 s mit 150 U/min (64+ Umdrehungen).\nCAL_EN muss verbunden sein (oder bei Aufforderung von Hand auf 3,3 V legen).">Encoder kalibrieren<small>MT6835 selbst, Riemen ab!</small></button>
+        <button data-cmd="T" data-confirm="Balancierpunkt-Abgleich zurücksetzen?">Abgleich zurücksetzen<small>Winkel-Nullpunkt (Trim)</small></button>
+        <button data-cmd="F" data-confirm="Homing ueber beide Anschlaege?\nLernt die Riemenmarke (falls vorhanden) neu.">Homing über Anschläge<small>F: lernt Riemenmarke neu</small></button>
+        <button data-cmd="M" data-confirm="Rastmoment lernen?\nDer Wagen faehrt ca. 80 mm langsam vor und zurueck (~45 s). Pendel haengen lassen, vorher Homing.">Rastmoment lernen<small>Motor/Riemen-Rasten kompensieren</small></button>
+        <button data-cmd="I" data-confirm="Strom-Test starten?\nDer Motor wird kurz bestromt (ohne Drehmoment, Wagen bewegt sich nicht). Ergebnis im Log.">Strom-Test<small>Messbereich INA240 prüfen</small></button>
+        <button class="danger" data-cmd="f" data-confirm="FOC-Ausrichtung und R/L-Messung beim nächsten Start neu durchführen?">FOC neu<small>beim nächsten Start</small></button>
+        <button class="danger" data-cmd="R" data-always data-confirm="Wagen neu starten?">Neustart<small>Wagen-ESP32</small></button>
+      </div>
+      </details>
+    </section>
+    <section>
+      <details id="otaBox" class="fold">
+      <summary><h2>Firmware-Update (OTA)</h2></summary>
+      <div class="ota">
+        <div class="ostep"><span class="onum">1</span><div>
+          <button class="danger" data-cmd="O" data-always data-confirm="OTA-Modus starten?\nMotor wird abgeschaltet, ESP-NOW beendet, WLAN gestartet.">OTA-Modus aktivieren</button>
+          <div class="osub">Der Wagen verbindet sich mit dem Router aus <code>secrets.h</code> (IP per DHCP). Die Adresse wird automatisch übernommen. Notfall-AP: <code>pendel-wagen</code> / <code>pendel123</code>.</div>
+        </div></div>
+        <div class="ostep"><span class="onum">2</span><div>
+          <div class="osub">Rechner im selben Netz. Arduino IDE: <i>Sketch → Kompilierte Binärdatei exportieren</i> → <code>build/…/Pendel_bldc.ino.bin</code></div>
+          <div class="row" style="margin-top:6px">
+            <button id="btnFile" class="mini">Datei wählen …</button>
+            <span id="otaFileName" class="fname">keine Datei gewählt</span>
+            <input id="otaFile" type="file" accept=".bin" hidden>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label for="otaIp" class="osub" style="margin:0">Adresse Wagen</label>
+            <input id="otaIp" type="text" value="192.168.4.1" style="flex:0 0 130px">
+          </div>
+        </div></div>
+        <div class="ostep"><span class="onum">3</span><div>
+          <div class="row">
+            <button id="btnUpload" class="mini primary">Hochladen</button>
+            <button id="btnOtaReboot" class="mini">Abbrechen / Neustart</button>
+            <progress id="otaProg" max="100" value="0"></progress>
+          </div>
+          <div class="osub" id="otaStat">Alternativ: Arduino IDE → Port <code>pendel-wagen</code> (Netzwerk).</div>
+        </div></div>
+      </div>
+      </details>
+    </section>
+  </div>
+  <div class="left">
+    <section>
+      <h2>Wagen &amp; Pendel</h2>
+      <canvas id="anim"></canvas>
+      <div class="vals">
+        <div><span>x</span><b id="vX">–</b></div>
+        <div><span>θ (0 = oben)</span><b id="vTh">–</b></div>
+        <div><span>a soll</span><b id="vA">–</b></div>
+        <div><span>Iq</span><b id="vIq">–</b></div>
+      </div>
+    </section>
+    <section>
+      <h2>Verlauf
+        <span class="legend"><span><i style="background:var(--cart)"></i>x [mm]</span>
+          <span id="lgTh"><i style="background:var(--pend)"></i>θ [°]</span>
+          <span><i style="background:var(--accent)"></i>a [m/s²]</span>
+          <span><i style="background:var(--ok)"></i>Iq [A]</span></span>
+        <select id="win" style="background:#0c0f13;color:var(--text);border:1px solid #333b47;border-radius:6px">
+          <option value="5">5 s</option><option value="10" selected>10 s</option><option value="30">30 s</option>
+        </select>
+        <button id="btnPause" class="mini">Pause</button>
+        <button id="btnCsv" class="mini">CSV</button>
+      </h2>
+      <canvas id="plot"></canvas>
+      <div class="xsrow">
+        <span class="xslab">Soll-Mitte</span>
+        <input id="xsSlider" type="range" min="-350" max="350" step="1" value="0">
+        <b id="xsVal">0 mm</b>
+        <button id="xsZero" class="mini">Mitte</button>
+      </div>
+    </section>
+    <section>
+      <h2>Log
+        <span class="spacer"></span>
+        <label style="text-transform:none;letter-spacing:0;font-weight:400"><input type="checkbox" id="autoscroll" checked> folgen</label>
+        <button id="btnSaveLog" class="mini">Speichern</button>
+        <button id="btnClear" class="mini">Leeren</button>
+      </h2>
+      <div id="log"></div>
+      <div class="row" style="margin-top:8px">
+        <input id="cmdIn" type="text" placeholder="Befehl (z. B. ?)" maxlength="40">
+        <button id="btnSend" class="mini">Senden</button>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<script>
+"use strict";
+const SVC = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+const RX  = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+const LOG = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+const TEL = "6e400004-b5a3-f393-e0a9-e50e24dcca9e";
+const MODES = ["IDLE", "HOLD", "SWINGUP", "BALANCE", "STOPPING", "FAULT", "PERIOD", "WARTET", "BERUHIGEN"];
+const F = { HOMED: 1, EST: 2, CAL: 4, LINK: 8, HOMING: 16, CALIB: 32, OTA: 64, VBAT_LOW: 128 };
+const RAIL_HALF = 0.45, PEND_LEN = 0.27;    // nur Darstellung [m]: Schiene 900 mm, Pendel 270 mm
+const MAX_REC = 60000;                      // ~20 min bei 50 Hz
+
+const $ = (id) => document.getElementById(id);
+let device = null, rxChar = null, connected = false, userDisconnect = false;
+let rec = [];            // {t, x, v, th, om, a, iq, mode, flags, vbat}
+let last = null, paused = false, rateCnt = 0;
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// ---------------- Log ----------------
+const logEl = $("log");
+let logBuf = "";
+function stamp() {
+  const d = new Date();
+  return d.toLocaleTimeString("de-DE", { hour12: false }) + "." + String(d.getMilliseconds()).padStart(3, "0");
+}
+function addLog(text, cls) {
+  const line = document.createElement("div");
+  if (!cls) cls = /FEHLER|Fehler|FAULT|fehlgeschlagen|ungueltig|nicht/.test(text) ? "er" : (text.startsWith(">>") ? "ev" : "");
+  line.innerHTML = `<span class="t">${stamp()}</span> <span class="${cls}"></span>`;
+  line.lastChild.textContent = text;
+  logEl.appendChild(line);
+  while (logEl.childNodes.length > 2000) logEl.removeChild(logEl.firstChild);
+  if ($("autoscroll").checked) logEl.scrollTop = logEl.scrollHeight;
+}
+// Hochraten-Rekorder: "REC_BEGIN", "REC;..."-Zeilen, "REC_END" -> CSV
+let recLines = null, recHz = 800;
+function onRecLine(l) {
+  if (l.startsWith("REC_BEGIN")) { recLines = []; recHz = +(l.split(";")[2]) || 800; addLog("Rekorder: Download läuft …", "ev"); return true; }
+  if (recLines === null) return l.startsWith("REC;");
+  if (l.startsWith("REC_END")) {
+    const head = "t_ms;x_m;v_m_s;theta_deg;omega_rad_s;gyro_rad_s;fr_m_s2;ft_m_s2;a_m_s2;iq_A;mode;lost;dtheta_corr_deg;foc_loops\n";
+    let n0 = null, out = "";
+    for (const r of recLines) {
+      const f = r.split(";");
+      if (f.length < 13 || f[1] === "n") continue;
+      const n = +f[1];
+      if (n0 === null) n0 = n;
+      const t = ((n - n0 + 65536) % 65536) * 1.25;
+      out += [t.toFixed(2), (f[2] / 1e4).toFixed(4), (f[3] / 1e3).toFixed(3), (f[4] / 100).toFixed(2), (f[5] / 1e3).toFixed(3),
+              (f[6] / 1e3).toFixed(3), (f[7] / 100).toFixed(2), (f[8] / 100).toFixed(2), (f[9] / 100).toFixed(2), (f[10] / 100).toFixed(2),
+              (MODES[+f[11] & 0x7f] ?? f[11]) + (+f[11] & 0x80 ? "_RUHE" : ""), f[12], f.length > 13 ? (f[13] / 1000).toFixed(3) : "", f.length > 14 ? f[14] : ""].join(";") + "\n";
+    }
+    download(`pendel-rec${recHz}-${fileStamp()}.csv`, head + out, "text/csv");
+    addLog(`Rekorder: ${recLines.length} Zeilen gespeichert`, "ev");
+    recLines = null;
+    return true;
+  }
+  if (l.startsWith("REC;")) recLines.push(l);
+  return true;
+}
+function onLogData(ev) {
+  logBuf += new TextDecoder().decode(ev.target.value);
+  let i;
+  while ((i = logBuf.indexOf("\n")) >= 0) {
+    const l = logBuf.slice(0, i).replace(/\r$/, "");
+    logBuf = logBuf.slice(i + 1);
+    if (!l.length) continue;
+    if (onRecLine(l)) continue;
+    const m = l.match(/OTA(?:-IP| bereit):\s*(\d{1,3}(?:\.\d{1,3}){3})/);
+    if (m) { $("otaBox").open = true; $("otaIp").value = m[1]; otaStat(`OTA-Modus aktiv – Adresse ${m[1]}. Rechner mit dem WLAN verbinden, .bin wählen, Hochladen.`); }
+    addLog(l);
+  }
+}
+
+// ---------------- Telemetrie ----------------
+function parseTel(dv) {
+  return {
+    t: dv.getUint32(0, true) / 1000,
+    x: dv.getInt16(4, true) / 1e4,
+    v: dv.getInt16(6, true) / 1e3,
+    th: dv.getInt16(8, true) / 100,          // Grad, 0 = oben
+    om: dv.getInt16(10, true) / 1e3,
+    a: dv.getInt16(12, true) / 100,
+    iq: dv.getInt16(14, true) / 100,
+    mode: dv.getUint8(16) & 0x3f, rest: !!(dv.getUint8(16) & 0x80),
+    sens: !!(dv.getUint8(16) & 0x40),        // th-Feld = Lichtsensor [%] (Sensor ausrichten)
+    flags: dv.getUint8(17),
+    vbat: dv.getUint16(18, true),
+    xs: dv.byteLength >= 22 ? dv.getInt16(20, true) / 1e4 : 0,   // Soll-Mitte [m]
+    trim: dv.byteLength >= 24 ? dv.getInt16(22, true) / 100 : null,   // Winkel-Offset [deg]
+  };
+}
+function onTel(ev) { pushSample(parseTel(ev.target.value)); }
+let lastTh = 0;
+function pushSample(s) {
+  if (s.sens) { s.lux = s.th; s.th = lastTh; } else lastTh = s.th;   // Lichtsensor statt Winkel: Animation behält den Winkel
+  last = s;
+  rateCnt++;
+  if (!paused) {
+    rec.push(s);
+    if (rec.length > MAX_REC) rec.splice(0, rec.length - MAX_REC);
+  }
+  updateStatus(s);
+  xsSync(s);
+}
+
+function setStopState(on, rest = false) {
+  $("btnStop").classList.toggle("active", on && !rest);
+  $("btnStop").classList.toggle("rest", on && rest);
+  $("stopSub").textContent = (rest ? "senkrecht · Totpunkt" : on ? "Regelung aktiv" : "Regelung aus") + " · Leertaste";
+}
+function chip(id, text, cls) { const e = $(id); e.textContent = text; e.className = "chip" + (cls ? " " + cls : ""); }
+function updateStatus(s) {
+  const f = s.flags, mode = MODES[s.mode] || "?";
+  chip("cMode", f & F.OTA ? "OTA" : (f & F.HOMING ? "HOMING" : mode + (s.rest ? " · RUHE" : "")), "mode");
+  chip("cHome", f & F.HOMING ? "Homing läuft" : (f & F.HOMED ? "Homing ok" : "nicht gehomt"),
+       f & F.HOMING ? "warn" : (f & F.HOMED ? "ok" : "err"));
+  chip("cCal", f & F.CALIB ? "Kalibriere …" : (f & F.CAL ? "kalibriert" : "nicht kalibriert"),
+       f & F.CALIB ? "warn" : (f & F.CAL ? "ok" : "err"));
+  chip("cEst", f & F.EST ? "Schätzer ok" : "Schätzer –", f & F.EST ? "ok" : "warn");
+  chip("cLink", f & F.LINK ? "Pendel-Funk" : "kein Pendel", f & F.LINK ? "ok" : "err");
+  chip("cBat", s.vbat ? `Akku ${(s.vbat / 1000).toFixed(2)} V` : "Akku –", f & F.VBAT_LOW ? "err" : (s.vbat ? "ok" : ""));
+  $("vX").textContent = (s.x * 1000).toFixed(1) + " mm";
+  $("vTh").textContent = s.sens ? "Licht " + s.lux.toFixed(1) + " %" : s.th.toFixed(1) + "°";
+  $("lgTh").innerHTML = s.sens ? '<i style="background:#e6c24a"></i>Licht [%]' : '<i style="background:var(--pend)"></i>θ [°]';
+  $("vA").textContent = s.a.toFixed(2) + " m/s²";
+  $("vIq").textContent = s.iq.toFixed(2) + " A";
+  const running = s.mode === 2 || s.mode === 3 || s.mode === 6 || s.mode === 7 || s.mode === 8;
+  setStopState((s.mode !== 0 && s.mode !== 5) || !!(f & (F.HOMING | F.CALIB)), s.mode === 3 && s.rest);
+  document.querySelectorAll("button[data-cmd]").forEach((b) => {
+    if (b.hasAttribute("data-always")) { b.disabled = !connected; return; }
+    const c = b.dataset.cmd;
+    let dis = !connected || (f & F.OTA);
+    if ("psbhZG".includes(c) && !(f & F.HOMED)) dis = true;
+    if ("sbpG".includes(c) && !(f & F.EST)) dis = true;
+    if ("cHFMO0TIVJ".includes(c) && (running || (f & F.HOMING))) dis = true;
+    b.disabled = !!dis;
+  });
+}
+setInterval(() => { chip("cRate", `${rateCnt * 2} Hz`, connected ? (rateCnt > 15 ? "ok" : "warn") : ""); rateCnt = 0; }, 500);
+
+// ---------------- Zeichnen ----------------
+function fit(cv) {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) {
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [g, r.width, r.height];
+}
+
+function drawAnim() {
+  const [g, W, H] = fit($("anim"));
+  g.clearRect(0, 0, W, H);
+  const s = Math.min((W - 40) / (2 * RAIL_HALF), (H - 20) / (2 * PEND_LEN + 0.04));
+  const cx = W / 2, cy = H / 2;
+  // Schiene + Anschläge
+  g.strokeStyle = css("--line"); g.lineWidth = 4;
+  g.beginPath(); g.moveTo(cx - RAIL_HALF * s, cy); g.lineTo(cx + RAIL_HALF * s, cy); g.stroke();
+  g.fillStyle = "#444c58";
+  g.fillRect(cx - RAIL_HALF * s - 6, cy - 14, 6, 28); g.fillRect(cx + RAIL_HALF * s, cy - 14, 6, 28);
+  g.strokeStyle = "#2f3640"; g.lineWidth = 1; g.setLineDash([3, 4]);
+  g.beginPath(); g.moveTo(cx, cy - PEND_LEN * s); g.lineTo(cx, cy + PEND_LEN * s); g.stroke(); g.setLineDash([]);
+  if (!last) { g.fillStyle = css("--muted"); g.font = "13px system-ui"; g.textAlign = "center";
+               g.fillText("keine Daten", cx, cy - 30); return; }
+  const x = cx + last.x * s, th = last.th * Math.PI / 180;
+  const tx = x + Math.sin(th) * PEND_LEN * s, ty = cy - Math.cos(th) * PEND_LEN * s;
+  // Soll-Mitte
+  const xsPx = cx + (last.xs || 0) * s;
+  g.strokeStyle = css("--accent"); g.lineWidth = 2;
+  g.beginPath(); g.moveTo(xsPx - 6, cy + 18); g.lineTo(xsPx, cy + 12); g.lineTo(xsPx + 6, cy + 18); g.stroke();
+  // Wagen
+  g.fillStyle = css("--cart");
+  g.beginPath(); g.roundRect(x - 26, cy - 11, 52, 22, 4); g.fill();
+  // Pendel
+  g.strokeStyle = css("--pend"); g.lineWidth = 5; g.lineCap = "round";
+  g.beginPath(); g.moveTo(x, cy); g.lineTo(tx, ty); g.stroke();
+  g.fillStyle = css("--pend"); g.beginPath(); g.arc(tx, ty, 9, 0, 2 * Math.PI); g.fill();
+  g.fillStyle = "#11151a"; g.beginPath(); g.arc(x, cy, 4, 0, 2 * Math.PI); g.fill();
+}
+
+function niceStep(range, n) {
+  const raw = range / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+  return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+}
+// Winkel stetig machen (hängend wäre sonst Sprung zwischen +180 und -180)
+function unwrapDeg(vals) {
+  const out = new Array(vals.length);
+  let off = 0;
+  for (let i = 0; i < vals.length; i++) {
+    if (i > 0) { const d = vals[i] - vals[i - 1]; if (d > 180) off -= 360; else if (d < -180) off += 360; }
+    out[i] = vals[i] + off;
+  }
+  // Fenster so verschieben, dass der letzte Wert in [-180, 180] liegt
+  const shift = out.length ? Math.round(out[out.length - 1] / 360) * 360 : 0;
+  return out.map((v) => v - shift);
+}
+function drawPanel(g, X, Y, W, H, data, t0, t1, series, minSpan) {
+  const cols = series.map((sr) => { const v = data.map(sr.get); return sr.wrap ? unwrapDeg(v) : v; });
+  let lo = Infinity, hi = -Infinity;
+  for (const c of cols) for (const v of c) { if (!Number.isFinite(v)) continue; if (v < lo) lo = v; if (v > hi) hi = v; }
+  if (!isFinite(lo)) { lo = -1; hi = 1; }
+  if (hi - lo < minSpan) { const m = (hi + lo) / 2; lo = m - minSpan / 2; hi = m + minSpan / 2; }
+  const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+  const px = (t) => X + (t - t0) / (t1 - t0) * W, py = (v) => Y + H - (v - lo) / (hi - lo) * H;
+  g.strokeStyle = "#232931"; g.fillStyle = css("--muted"); g.lineWidth = 1; g.font = "11px system-ui"; g.textAlign = "right";
+  const st = niceStep(hi - lo, 4);
+  g.textBaseline = "alphabetic";
+  for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) {
+    g.beginPath(); g.moveTo(X, py(v)); g.lineTo(X + W, py(v)); g.stroke();
+    g.fillText(+v.toFixed(3) + "", X - 6, py(v) + 4);
+  }
+  g.save(); g.beginPath(); g.rect(X, Y, W, H); g.clip();
+  series.forEach((sr, k) => {
+    g.strokeStyle = sr.color; g.lineWidth = 1.6; g.beginPath();
+    let pen = false;                       // Lücken (NaN) unterbrechen die Linie
+    data.forEach((d, i) => {
+      const v = cols[k][i];
+      if (!Number.isFinite(v)) { pen = false; return; }
+      const xx = px(d.t), yy = py(v);
+      if (pen) g.lineTo(xx, yy); else g.moveTo(xx, yy);
+      pen = true;
+    });
+    g.stroke();
+  });
+  g.restore();
+}
+
+function drawPlot() {
+  const [g, W, H] = fit($("plot"));
+  g.clearRect(0, 0, W, H);
+  const win = +$("win").value;
+  if (!rec.length) return;
+  const t1 = rec[rec.length - 1].t, t0 = t1 - win;
+  let i0 = rec.length - 1;
+  while (i0 > 0 && rec[i0 - 1].t >= t0) i0--;
+  const data = rec.slice(i0);
+  const L = 48, R = 10, gap = 14, ph = (H - 20 - 2 * gap) / 3;
+  drawPanel(g, L, 4, W - L - R, ph, data, t0, t1,
+            [{ get: (d) => d.xs * 1000, color: "#5b6573" }, { get: (d) => d.x * 1000, color: css("--cart") }], 5);
+  if (last && last.sens) {                 // Sensor ausrichten: Lichtsignal statt Winkel
+    const ld = data.filter((d) => d.sens);
+    drawPanel(g, L, 4 + ph + gap, W - L - R, ph, ld.length ? ld : data, t0, t1, [{ get: (d) => d.lux ?? 0, color: "#e6c24a" }], 2);
+  } else
+    drawPanel(g, L, 4 + ph + gap, W - L - R, ph, data, t0, t1, [{ get: (d) => d.th, color: css("--pend"), wrap: true }], 5);
+  drawPanel(g, L, 4 + 2 * (ph + gap), W - L - R, ph, data, t0, t1,
+            [{ get: (d) => d.a, color: css("--accent") }, { get: (d) => d.iq, color: css("--ok") }], 1);
+  g.fillStyle = css("--muted"); g.font = "11px system-ui"; g.textAlign = "center";
+  const st = niceStep(win, 5);
+  for (let t = Math.ceil(t0 / st) * st; t <= t1; t += st)
+    g.fillText((t - t1).toFixed(st < 1 ? 1 : 0) + " s", L + (t - t0) / win * (W - L - R), H - 4);
+}
+
+function frame() { drawAnim(); if (!paused) drawPlot(); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+
+// ---------------- Bluetooth ----------------
+async function send(cmd) {
+  if (!rxChar) return;
+  const data = new TextEncoder().encode(cmd);
+  try {
+    if (rxChar.writeValueWithoutResponse) await rxChar.writeValueWithoutResponse(data);
+    else await rxChar.writeValue(data);
+    if (cmd[0] !== "X") addLog("> " + cmd, "tx");
+  } catch (e) { addLog("Senden fehlgeschlagen: " + e.message, "er"); }
+}
+
+async function connectGatt() {
+  const server = await device.gatt.connect();
+  const svc = await server.getPrimaryService(SVC);
+  rxChar = await svc.getCharacteristic(RX);
+  const logC = await svc.getCharacteristic(LOG);
+  const telC = await svc.getCharacteristic(TEL);
+  logC.addEventListener("characteristicvaluechanged", onLogData);
+  telC.addEventListener("characteristicvaluechanged", onTel);
+  await telC.startNotifications();
+  await logC.startNotifications();
+  connected = true;
+  chip("cConn", device.name || "verbunden", "ok");
+  $("btnConnect").textContent = "Trennen";
+  addLog("Verbunden mit " + (device.name || "Gerät"), "ev");
+}
+
+async function bleReconnect(n) {
+  for (let i = 1; i <= n && !connected; i++) {
+    chip("cConn", `Wiederverbinden ${i}/${n} …`, "warn");
+    await new Promise((r) => setTimeout(r, 2000));
+    try { await connectGatt(); } catch (e) { /* weiter versuchen */ }
+  }
+  if (!connected) chip("cConn", "getrennt", "err");
+}
+
+// OTA: Wagen beendet Bluetooth und meldet sich im WLAN -> per /ping auf Erreichbarkeit warten
+let otaPinging = false;
+async function otaWaitWifi() {
+  if (otaPinging) return;
+  otaPinging = true;
+  $("otaBox").open = true;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 10 * 60 * 1000) {
+    otaStat(`Warte, bis sich der Wagen im WLAN meldet (${otaBase()}) … ${((Date.now() - t0) / 1000) | 0} s`);
+    try {
+      const ac = new AbortController(); const to = setTimeout(() => ac.abort(), 1500);
+      const r = await lanFetch(otaBase() + "/ping", { cache: "no-store", signal: ac.signal });
+      clearTimeout(to);
+      if (r.ok) {
+        otaStat(`Wagen im WLAN erreichbar (${otaBase()}) – .bin wählen und Hochladen.`);
+        addLog(">> Wagen im WLAN erreichbar: " + otaBase(), "ev");
+        break;
+      }
+    } catch (e) { /* noch nicht erreichbar */ }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  otaPinging = false;
+}
+
+async function onDisconnected() {
+  connected = false; rxChar = null; setStopState(false);
+  chip("cConn", "getrennt", "err");
+  $("btnConnect").textContent = "Verbinden";
+  if (last) updateStatus(last);
+  const ota = last && (last.flags & F.OTA);
+  addLog("Bluetooth-Verbindung getrennt" + (ota ? " (OTA: Wagen ist jetzt im WLAN)" : ""), ota ? "ev" : "er");
+  if (userDisconnect) return;
+  if (ota) { chip("cConn", "OTA (WLAN)", "warn"); otaWaitWifi(); return; }
+  bleReconnect(15);                                 // z. B. nach Neustart (~30 s)
+}
+
+function useDevice(d) {
+  if (device === d) return;
+  device = d;
+  d.addEventListener("gattserverdisconnected", onDisconnected);
+}
+
+// Früher freigegebenes Gerät (nur mit Chrome-Flag "enable-web-bluetooth-new-permissions-backend")
+async function rememberedDevice() {
+  if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return null;
+  try {
+    const list = await navigator.bluetooth.getDevices();
+    return list.find((d) => (d.name || "").startsWith("Pendel")) || null;
+  } catch (e) { return null; }
+}
+
+// bekanntes Gerät ohne Auswahlfenster verbinden (wartet max. 5 s auf dessen Advertising)
+async function connectKnown(d) {
+  if (d.watchAdvertisements) {
+    await new Promise((res) => {
+      const ac = new AbortController();
+      const done = () => { clearTimeout(t); ac.abort(); res(); };
+      const t = setTimeout(done, 5000);
+      d.addEventListener("advertisementreceived", done, { once: true });
+      d.watchAdvertisements({ signal: ac.signal }).catch(done);
+    });
+  }
+  useDevice(d);
+  await connectGatt();
+}
+
+$("btnConnect").onclick = async () => {
+  if (connected) { userDisconnect = true; device.gatt.disconnect(); return; }
+  userDisconnect = false;
+  chip("cConn", "verbinde …", "warn");
+  // 1) in dieser Sitzung schon gewählt -> direkt
+  if (device) { try { await connectGatt(); return; } catch (e) { /* weiter */ } }
+  // 2) gespeicherte Freigabe -> direkt
+  const known = await rememberedDevice();
+  if (known) { try { await connectKnown(known); return; } catch (e) { /* weiter */ } }
+  // 3) Auswahlfenster (erstes Mal bzw. ohne Flag)
+  try {
+    useDevice(await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "Pendel" }], optionalServices: [SVC] }));
+    await connectGatt();
+  } catch (e) {
+    if (e.name !== "NotFoundError") addLog("Verbindung fehlgeschlagen: " + e.message, "er");
+    chip("cConn", "getrennt", "");
+  }
+};
+
+// beim Laden automatisch verbinden, falls der Browser das Gerät kennt
+(async () => {
+  const d = await rememberedDevice();
+  if (!d || connected) return;
+  chip("cConn", "verbinde …", "warn");
+  try { await connectKnown(d); } catch (e) { chip("cConn", "getrennt", ""); }
+})();
+
+// ---------------- Soll-Mitte (Schieberegler) ----------------
+let xsDragUntil = 0, xsTimer = null;
+function xsShow(mm) { $("xsVal").textContent = `${mm > 0 ? "+" : ""}${mm} mm`; }
+function xsSend() {
+  xsTimer = null;
+  if (connected) send("X" + $("xsSlider").value);
+}
+$("xsSlider").addEventListener("input", () => {
+  xsDragUntil = performance.now() + 1500;
+  xsShow(+$("xsSlider").value);
+  if (!xsTimer) xsTimer = setTimeout(xsSend, 100);     // max. 10 Befehle/s
+});
+$("xsSlider").addEventListener("change", () => { clearTimeout(xsTimer); xsSend(); });
+$("xsZero").onclick = () => { $("xsSlider").value = 0; xsShow(0); xsDragUntil = performance.now() + 1500; xsSend(); };
+// Anzeige beim Verbinden/nach Neustart an den Wagen angleichen, solange nicht gezogen wird
+function xsSync(s) {
+  if (performance.now() < xsDragUntil) return;
+  const mm = Math.round((s.xs || 0) * 1000);
+  if (+$("xsSlider").value !== mm && Math.abs(mm) <= 350) { $("xsSlider").value = mm; xsShow(mm); }
+}
+
+// ---------------- Bedienung ----------------
+document.querySelectorAll("button[data-cmd]").forEach((b) => {
+  b.disabled = true;
+  b.onclick = () => {
+    const msg = b.dataset.confirm;
+    if (msg && !confirm(msg.replace(/\\n/g, "\n"))) return;
+    send(b.dataset.cmd);
+  };
+});
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && e.target.tagName !== "INPUT") { e.preventDefault(); if (connected) send("x"); }
+});
+$("btnSend").onclick = () => { const v = $("cmdIn").value.trim(); if (v) { send(v); $("cmdIn").value = ""; } };
+$("cmdIn").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btnSend").click(); });
+$("btnClear").onclick = () => { logEl.innerHTML = ""; };
+$("btnPause").onclick = () => { paused = !paused; $("btnPause").textContent = paused ? "Weiter" : "Pause"; };
+
+function download(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+// ---------------- OTA-Upload direkt an den Wagen (CORS in der Firmware freigegeben) ----------------
+function otaStat(t) { $("otaStat").textContent = t; }
+// Zugriff aufs lokale Netz: bei per HTTPS geladener Seite braucht Chrome targetAddressSpace (Local Network Access),
+// sonst blockiert er HTTP zum ESP32 als "Mixed Content". Andere Browser ignorieren die Option.
+const lanFetch = (url, opt = {}) => fetch(url, location.protocol === "https:" ? { ...opt, targetAddressSpace: "local" } : opt);
+const otaBase = () => "http://" + $("otaIp").value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+$("btnFile").onclick = () => $("otaFile").click();
+$("otaFile").onchange = () => {
+  const f = $("otaFile").files[0], n = $("otaFileName");
+  n.textContent = f ? `${f.name}  (${(f.size / 1024) | 0} kB)` : "keine Datei gewählt";
+  n.classList.toggle("set", !!f);
+};
+$("btnUpload").onclick = () => {
+  const f = $("otaFile").files[0];
+  if (!f) { otaStat("Erst eine .bin-Datei wählen."); return; }
+  const fd = new FormData();
+  fd.append("firmware", f, f.name);
+  const done = (ok, txt) => {
+    otaStat(ok ? "Update OK – Wagen startet neu, Bluetooth verbindet sich danach automatisch." : "Fehler: " + txt);
+    if (ok && device && !connected) { userDisconnect = false; setTimeout(() => bleReconnect(20), 5000); }
+    addLog(ok ? ">> OTA erfolgreich" : "OTA-Fehler: " + txt, ok ? "ev" : "er");
+    $("btnUpload").disabled = false;
+    $("otaProg").value = ok ? 100 : 0;
+  };
+  $("btnUpload").disabled = true;
+  $("otaProg").value = 0;
+  otaStat("Verbinde …");
+  if (location.protocol === "https:") {
+    // HTTPS-Seite: XMLHttpRequest wird als Mixed Content geblockt -> fetch mit Local Network Access (ohne Fortschritt)
+    otaStat(`Übertrage ${(f.size / 1024) | 0} kB … (Fortschritt im Log, dauert ca. 20–40 s)`);
+    $("otaProg").removeAttribute("value");
+    lanFetch(otaBase() + "/update", { method: "POST", body: fd })
+      .then((r) => r.text()).then((t) => done(t.startsWith("OK"), t))
+      .catch((e) => done(false, `keine Verbindung zu ${otaBase()} (${e.message}) – Browser fragt evtl. nach Zugriff aufs lokale Netzwerk: erlauben`));
+    return;
+  }
+  const x = new XMLHttpRequest();
+  x.open("POST", otaBase() + "/update");
+  x.upload.onprogress = (e) => {
+    if (!e.lengthComputable) return;
+    const p = e.loaded * 100 / e.total;
+    $("otaProg").value = p;
+    otaStat(`Übertrage … ${(e.loaded / 1024) | 0} / ${(e.total / 1024) | 0} kB (${p.toFixed(0)} %)`);
+  };
+  x.onload = () => done(x.responseText.startsWith("OK"), x.responseText);
+  x.onerror = () => done(false, `keine Verbindung zu ${otaBase()} – OTA-Modus aktiv? Rechner im selben Netz?`);
+  x.send(fd);
+};
+$("btnOtaReboot").onclick = () => {
+  lanFetch(otaBase() + "/reboot").then(() => otaStat("Neustart …")).catch(() => {
+    if (connected) { send("R"); otaStat("Neustart per Bluetooth …"); } else otaStat("Wagen nicht erreichbar");
+  });
+};
+
+const fileStamp = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+$("btnCsv").onclick = () => {
+  const head = "t_s;x_m;v_m_s;theta_deg;omega_rad_s;a_m_s2;iq_A;mode;flags;vbat_mV;xs_m\n";
+  const body = rec.map((d) => [d.t.toFixed(3), d.x.toFixed(4), d.v.toFixed(3), d.th.toFixed(2), d.om.toFixed(3),
+    d.a.toFixed(2), d.iq.toFixed(2), (MODES[d.mode] || d.mode) + (d.rest ? "_RUHE" : ""), d.flags, d.vbat, (d.xs || 0).toFixed(4)].join(";")).join("\n");
+  download(`pendel-${fileStamp()}.csv`, head + body, "text/csv");
+};
+$("btnSaveLog").onclick = () => download(`pendel-log-${fileStamp()}.txt`, logEl.innerText, "text/plain");
+
+if (!navigator.bluetooth) { $("nobt").style.display = "block"; $("btnConnect").disabled = true; }
+
+// ---------------- Demo (index.html?demo) – Oberfläche ohne Hardware testen ----------------
+if (location.search.includes("demo")) {
+  connected = true; chip("cConn", "Demo", "warn");
+  rxChar = { writeValue: async () => {} };
+  const wrap = (q) => ((((q + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  const t0 = performance.now() / 1000;
+  setInterval(() => {      // gescriptete Bewegung: 6 s Aufschwingen, dann Balancieren mit Störungen
+    const t = performance.now() / 1000 - t0, tc = t % 16, w = 2 * Math.PI / 1.03;
+    let x, th, a, mode;
+    if (tc < 6) {
+      const A = Math.min(Math.PI, 0.15 * Math.exp(tc / 2));
+      th = Math.PI + A * Math.sin(w * tc); x = 0.12 * (tc / 6) * Math.sin(w * tc + Math.PI);
+      a = -0.12 * (tc / 6) * w * w * Math.sin(w * tc + Math.PI); mode = 2;
+    } else {
+      const tb = tc - 6, d = Math.exp(-1.5 * (tb % 5));
+      th = 0.12 * d * Math.cos(5 * tb) + 0.004 * Math.sin(37 * tb);
+      x = 0.05 * d * Math.sin(3 * tb); a = -3 * d * Math.sin(5 * tb); mode = 3;
+    }
+    pushSample({ t, x, v: 0, th: wrap(th) * 180 / Math.PI, om: 0, a, iq: a * 0.28, mode,
+                 flags: F.HOMED | F.EST | F.CAL | F.LINK, vbat: 3950 });
+  }, 20);
+  addLog(">> Demo-Modus: simulierte Telemetrie");
+}
+</script>
+</body>
+</html>
