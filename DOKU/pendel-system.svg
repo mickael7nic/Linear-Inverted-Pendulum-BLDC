@@ -1,1 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 305" font-family="DejaVu Sans, Arial, sans-serif" font-size="12">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2b6cb0"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="760" height="305" fill="#ffffff"/>
 
+  <!-- LED-Leiste -->
+  <g>
+    <rect x="70" y="262" width="520" height="6" rx="2" fill="#20262c"/>
+    <g fill="#3a4651">
+      <circle cx="90" cy="265" r="1.6"/><circle cx="130" cy="265" r="1.6"/><circle cx="170" cy="265" r="1.6"/>
+      <circle cx="210" cy="265" r="1.6"/><circle cx="250" cy="265" r="1.6"/><circle cx="410" cy="265" r="1.6"/>
+      <circle cx="450" cy="265" r="1.6"/><circle cx="490" cy="265" r="1.6"/><circle cx="530" cy="265" r="1.6"/><circle cx="570" cy="265" r="1.6"/>
+    </g>
+    <circle cx="315" cy="265" r="3" fill="#38c172"/><circle cx="330" cy="265" r="3.4" fill="#38c172"/><circle cx="345" cy="265" r="3" fill="#38c172"/>
+    <text x="600" y="269" fill="#55606b" font-size="11">LED-Leiste 144 LEDs</text>
+  </g>
+
+  <!-- Schiene -->
+  <rect x="70" y="236" width="520" height="14" rx="3" fill="#c3ccd5" stroke="#8796a5"/>
+  <text x="600" y="247" fill="#55606b" font-size="11">Schiene 1 m</text>
+
+  <!-- Riemen -->
+  <path d="M95,214 L565,214 M95,226 L565,226" stroke="#1f2933" stroke-width="2.5"/>
+  <rect x="105" y="211" width="225" height="6" fill="#fffbe6" stroke="#1f2933" stroke-width="0.8"/>
+  <!-- Umlenkrolle rechts -->
+  <circle cx="565" cy="220" r="10" fill="#e2e8ee" stroke="#5c6b78" stroke-width="1.5"/>
+
+  <!-- Motor links -->
+  <circle cx="95" cy="220" r="10" fill="#e2e8ee" stroke="#5c6b78" stroke-width="1.5"/>
+  <rect x="40" y="168" width="58" height="40" rx="6" fill="#2d3748"/>
+  <text x="69" y="186" fill="#fff" text-anchor="middle" font-size="11" font-weight="bold">BLDC</text>
+  <text x="69" y="200" fill="#cbd5e0" text-anchor="middle" font-size="9.5">+ MT6835</text>
+
+  <!-- Lichtsensor -->
+  <rect x="122" y="190" width="30" height="16" rx="2" fill="#111"/>
+  <circle cx="137" cy="198" r="3.5" fill="#fff6b0"/>
+  <path d="M137,206 L131,214 M137,206 L143,214" stroke="#f6c343" stroke-width="1.2"/>
+  <text x="137" y="182" text-anchor="middle" fill="#55606b" font-size="10.5">TCS34725</text>
+  <text x="215" y="208" fill="#7b8794" font-size="10">Riemen hell</text>
+  <text x="430" y="208" fill="#7b8794" font-size="10">Riemen dunkel</text>
+
+  <!-- Wagen -->
+  <rect x="300" y="196" width="60" height="36" rx="5" fill="#4a5f77" stroke="#2c3e50"/>
+  <circle cx="312" cy="236" r="5" fill="#1f2933"/><circle cx="348" cy="236" r="5" fill="#1f2933"/>
+  <text x="330" y="218" fill="#fff" text-anchor="middle" font-size="11" font-weight="bold">Wagen</text>
+  <text x="330" y="292" text-anchor="middle" fill="#55606b" font-size="10">Hybrid-Kugellager 605 · Mitte = Hell-Dunkel-Kante am Sensor</text>
+
+  <path d="M578,128 Q400,110 214,108" fill="none" stroke="#2b6cb0" stroke-width="1.8" stroke-dasharray="5 4" marker-start="url(#ar)" marker-end="url(#ar)"/>
+  <text x="470" y="108" fill="#2b6cb0" font-size="10.5" font-weight="bold">Bluetooth LE</text>
+  <!-- Pendel -->
+  <line x1="330" y1="198" x2="342" y2="62" stroke="#a0522d" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="330" cy="198" r="4" fill="#2c3e50"/>
+  <rect x="326" y="40" width="34" height="24" rx="4" fill="#2b6cb0" transform="rotate(5 343 52)"/>
+  <text x="343" y="56" fill="#fff" text-anchor="middle" font-size="9" font-weight="bold" transform="rotate(5 343 52)">C6</text>
+  <text x="375" y="40" fill="#1d2329" font-size="11" font-weight="bold">Pendel-Sender</text>
+  <text x="375" y="55" fill="#55606b" font-size="10.5">ESP32-C6 + BMI270, LiPo</text>
+  <text x="375" y="69" fill="#55606b" font-size="10.5">Tiefschlaf, Weckung durch Bewegung</text>
+
+  <!-- Steuerboard -->
+  <rect x="40" y="70" width="170" height="64" rx="6" fill="#edf2f7" stroke="#2d3748"/>
+  <text x="125" y="89" text-anchor="middle" font-weight="bold" fill="#1d2329">SimpleFOC ESP32 20A</text>
+  <text x="125" y="105" text-anchor="middle" fill="#55606b" font-size="10.5">FOC · EKF · LQR · Homing</text>
+  <text x="125" y="120" text-anchor="middle" fill="#55606b" font-size="10.5">ein Board, 12 V</text>
+  <line x1="69" y1="134" x2="69" y2="168" stroke="#2d3748" stroke-width="2"/>
+  <line x1="137" y1="134" x2="137" y2="190" stroke="#8796a5" stroke-width="1.2" stroke-dasharray="3 2"/>
+  <rect x="12" y="20" width="56" height="26" rx="4" fill="#fbd38d" stroke="#b7791f"/>
+  <text x="40" y="37" text-anchor="middle" font-size="11" font-weight="bold" fill="#744210">12 V</text>
+  <line x1="40" y1="46" x2="60" y2="70" stroke="#b7791f" stroke-width="1.5"/>
+
+  <!-- Funk Pendel -> Board -->
+  <path d="M322,48 Q260,30 214,86" fill="none" stroke="#2b6cb0" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+  <text x="250" y="30" fill="#2b6cb0" font-size="10.5" font-weight="bold">ESP-NOW 800 Hz</text>
+
+  <!-- Browser -->
+  <rect x="580" y="96" width="150" height="88" rx="6" fill="#fff" stroke="#2d3748" stroke-width="1.5"/>
+  <rect x="580" y="96" width="150" height="16" rx="6" fill="#2d3748"/>
+  <circle cx="590" cy="104" r="2.5" fill="#fc8181"/><circle cx="599" cy="104" r="2.5" fill="#f6e05e"/><circle cx="608" cy="104" r="2.5" fill="#68d391"/>
+  <polyline points="590,160 610,140 625,152 645,128 665,146 685,134 715,150" fill="none" stroke="#38c172" stroke-width="1.6"/>
+  <text x="655" y="176" text-anchor="middle" fill="#55606b" font-size="10">index.html</text>
+  <text x="655" y="200" text-anchor="middle" fill="#1d2329" font-size="11" font-weight="bold">Browser</text>
+</svg>
