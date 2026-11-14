@@ -52,7 +52,7 @@ Hybrid-Miniaturkugellager (POM-Ringe, Edelstahlkugeln, 605) führen den Wagen. K
 Ein einziges 12-V-Netzteil versorgt Motor und Elektronik. Das Pendel braucht kein Kabel, sein Akku (LiPo) wird per USB geladen.
 
 ### Bedienung aus dem Browser
-- Eine einzige Datei `index.html` – öffnen in Chrome oder Edge (Web Bluetooth), **Verbinden** drücken, fertig
+- Eine einzige Datei `Pendel_bldc.html` – öffnen in Chrome oder Edge (Web Bluetooth), **Verbinden** drücken, fertig
 - Live-Grafik von Wagen und Pendel, Verlauf von Position, Winkel, Beschleunigung und Strom, Log-Fenster
 - Alle Funktionen per Knopf: Homing, Swing-up, Balancieren, Beruhigen, Soll-Mitte per Schieberegler
 - 4-s-Rekorder mit 400 Hz als CSV zum Herunterladen, Diagnose- und Testfunktionen
@@ -95,6 +95,6 @@ Ein einziges 12-V-Netzteil versorgt Motor und Elektronik. Das Pendel braucht kei
 ## Ablauf in vier Schritten
 
 1. **Einschalten** – 12 V an, der Wagen sucht die Riemenmarke und stellt sich in die Mitte.
-2. **Verbinden** – `index.html` im Browser öffnen, *Verbinden* drücken.
+2. **Verbinden** – `Pendel_bldc.html` im Browser öffnen, *Verbinden* drücken.
 3. **Swing-up** – der Wagen schwingt das Pendel hoch und fängt es auf.
 4. **Zuschauen** – das Pendel balanciert; mit dem Schieberegler den Wagen verschieben, mit dem Finger anstupsen, *Beruhigen* zum Beenden.
